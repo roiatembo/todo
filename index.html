@@ -358,7 +358,6 @@ function toggleItem(id, checked){
 function render() {
   const box = document.getElementById(currentPage + "List");
   box.innerHTML = "";
-  console.log("this is the box" + box);
 
   // Check if categories[currentPage] exists and is an array
   if (!categories[currentPage] || !Array.isArray(categories[currentPage])) {
@@ -371,11 +370,15 @@ function render() {
     items = [];
   }
 
+  // Debug: Log the data to see structure
+  console.log("Categories:", categories[currentPage]);
+  console.log("Items:", items);
+
   categories[currentPage].forEach(cat => {
     // category box
     let catDiv = document.createElement("div");
     catDiv.className = "category";
-    catDiv.innerHTML = `<b>${cat.name}</b> (K${cat.total || 0})`; // Added default value for total
+    catDiv.innerHTML = `<b>${cat.name}</b> (K${cat.total || 0})`;
     catDiv.onclick = () => toggleCategory(catDiv);
     box.appendChild(catDiv);
 
@@ -384,23 +387,46 @@ function render() {
     itemsBox.className = "category-items";
     box.appendChild(itemsBox);
 
-    // Filter items for this category
-    const categoryItems = items.filter(i => i.catId == cat.id);
-    
-    categoryItems.forEach(it => {
-      let itDiv = document.createElement("div");
-      itDiv.className = "item";
-
-      itDiv.innerHTML = `
-        <label>
-          <input type="checkbox" ${it.done ? "checked" : ""}
-            onchange="toggleItem(${it.id}, this.checked)"> 
-          ${it.name} ${it.price > 0 ? `(K${it.price})` : ""}
-        </label>
-      `;
-
-      itemsBox.appendChild(itDiv);
+    // FIXED: Use the correct property name
+    // Try different possible property names from your API
+    const categoryItems = items.filter(i => {
+      // Check multiple possible property names
+      return i.category_id == cat.id || 
+             i.catId == cat.id || 
+             i.categoryId == cat.id ||
+             i.category == cat.id;
     });
+    
+    console.log(`Category ${cat.id} (${cat.name}) has ${categoryItems.length} items`);
+    
+    if (categoryItems.length === 0) {
+      // Show a message if no items
+      let emptyMsg = document.createElement("div");
+      emptyMsg.className = "item";
+      emptyMsg.style.fontStyle = "italic";
+      emptyMsg.style.color = "var(--muted)";
+      emptyMsg.textContent = "No items yet";
+      itemsBox.appendChild(emptyMsg);
+    } else {
+      categoryItems.forEach(it => {
+        let itDiv = document.createElement("div");
+        itDiv.className = "item";
+
+        // FIXED: Check property names for checkbox state
+        const isDone = it.done || it.completed || it.checked || false;
+        const itemPrice = it.price || 0;
+
+        itDiv.innerHTML = `
+          <label>
+            <input type="checkbox" ${isDone ? "checked" : ""}
+              onchange="toggleItem(${it.id}, this.checked)"> 
+            ${it.name} ${itemPrice > 0 ? `(K${itemPrice})` : ""}
+          </label>
+        `;
+
+        itemsBox.appendChild(itDiv);
+      });
+    }
 
     let addBtn = document.createElement("button");
     addBtn.className = "btn";
