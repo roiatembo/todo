@@ -1,0 +1,28 @@
+[02-Dec-2025 15:03:28 UTC] PHP Warning:  Undefined variable $db in /home/dithetoc/todo.theitmogul.com/api.php on line 12
+[02-Dec-2025 15:03:28 UTC] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in /home/dithetoc/todo.theitmogul.com/api.php:12
+Stack trace:
+#0 {main}
+  thrown in /home/dithetoc/todo.theitmogul.com/api.php on line 12
+[02-Dec-2025 15:04:07 UTC] PHP Warning:  Undefined variable $db in /home/dithetoc/todo.theitmogul.com/api.php on line 32
+[02-Dec-2025 15:04:07 UTC] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in /home/dithetoc/todo.theitmogul.com/api.php:32
+Stack trace:
+#0 {main}
+  thrown in /home/dithetoc/todo.theitmogul.com/api.php on line 32
+[02-Dec-2025 15:04:30 UTC] PHP Warning:  Undefined variable $db in /home/dithetoc/todo.theitmogul.com/api.php on line 12
+[02-Dec-2025 15:04:30 UTC] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in /home/dithetoc/todo.theitmogul.com/api.php:12
+Stack trace:
+#0 {main}
+  thrown in /home/dithetoc/todo.theitmogul.com/api.php on line 12
+[02-Dec-2025 15:04:42 UTC] PHP Warning:  Undefined variable $db in /home/dithetoc/todo.theitmogul.com/api.php on line 32
+[02-Dec-2025 15:04:42 UTC] PHP Fatal error:  Uncaught Error: Call to a member function prepare() on null in /home/dithetoc/todo.theitmogul.com/api.php:32
+Stack trace:
+#0 {main}
+  thrown in /home/dithetoc/todo.theitmogul.com/api.php on line 32
+[02-Dec-2025 23:51:20 UTC] Action received: load
+[02-Dec-2025 23:51:20 UTC] Data received: Array
+(
+    [action] => load
+    [page] => personal
+)
+
+[02-Dec-2025 23:51:20 UTC] API Error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'order clause'

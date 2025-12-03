@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Todo App</title>
+  <style>
+    :root {
+      --bg: #f7f7fb;
+      --card: #ffffff;
+      --primary: #4a4aff;
+      --primary-dark: #2c2cff;
+      --text: #222;
+      --muted: #666;
+      --radius: 14px;
+      --shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
+    [data-theme="dark"] {
+      --bg: #0f0f13;
+      --card: #1a1a20;
+      --text: #eaeaea;
+      --primary: #7c7cff;
+      --primary-dark: #5b5bff;
+      --shadow: 0 4px 15px rgba(255,255,255,0.05);
+    }
+
+    body {
+      font-family: "Inter", Arial, sans-serif;
+      padding: 20px;
+      background: var(--bg);
+      margin: 0;
+      color: var(--text);
+      transition: background .3s, color .3s;
+    }
+
+    .page { max-width: 600px; margin: 0 auto; }
+    .btn { padding: 14px; background: var(--primary); color: #fff; border-radius: var(--radius); width: 100%; margin-bottom: 10px; border: none; box-shadow: var(--shadow); cursor:pointer; }
+
+    .category {
+      background: var(--card);
+      padding: 14px;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-top: 10px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .category-items { max-height: 0; overflow: hidden; transition: max-height .3s ease; }
+
+    .item { background: var(--card); padding: 12px; margin-top: 8px; border-left: 4px solid var(--primary); border-radius: var(--radius); position: relative; }
+
+    /* Swipe delete */
+    .item.swipe { transition: transform .2s ease; }
+    .delete-zone {
+      position:absolute; right:10px; top:50%; transform:translateY(-50%);
+      color:red; font-size:1.3rem; opacity:0;
+      transition:.2s;
+    }
+    .item.swiped .delete-zone { opacity:1; }
+
+    /* Bottom sheet popup */
+    .sheet {
+      position: fixed; bottom: -100%; left: 0; width: 100%; background: var(--card);
+      border-radius: 20px 20px 0 0; padding: 25px; box-shadow: var(--shadow);
+      transition: bottom .35s ease;
+    }
+    .sheet.show { bottom: 0; }
+
+    input, select { width:100%; padding:12px; border-radius: var(--radius); border:1px solid #ccc; margin-top:10px; }
+
+    #themeToggle { position:fixed; top:15px; right:15px; background:var(--card); padding:10px 14px; border-radius: var(--radius); box-shadow:var(--shadow); cursor:pointer; }
+  </style>
+</head>
+<body>
+
+<div id="themeToggle" onclick="toggleTheme()">🌗 Theme</div>
+
+<div class="page" id="landing">
+  <h2>Select Type</h2>
+  <button class="btn" onclick="openPage('personal')">Personal</button>
+  <button class="btn" onclick="openPage('business')">Business</button>
+</div>
+
+<div class="page" id="personal" style="display:none;">
+  <h2>Personal</h2>
+  <button class="btn" onclick="openBottomSheet('category')">Add Category</button>
+  <div id="personalList"></div>
+</div>
+
+<div class="page" id="business" style="display:none;">
+  <h2>Business</h2>
+  <button class="btn" onclick="openBottomSheet('category')">Add Business</button>
+  <div id="businessList"></div>
+</div>
+
+<!-- Bottom Sheet for category/item -->
+<div class="sheet" id="bottomSheet">
+  <h3 id="sheetTitle">Add</h3>
+  <div id="sheetContent"></div>
+  <button class="btn" onclick="saveSheet()">Save</button>
+  <button class="btn" style="background:#999" onclick="closeSheet()">Cancel</button>
+</div>
+
+<script>
+let currentPage = "";
+let categories = {
+  personal: [],
+  business: []
+};
+let items = [];
+
+let sheetMode = "";
+let activeCategory = null;
+let activeItem = null;
+
+function toggleTheme(){
+  document.body.dataset.theme =
+    document.body.dataset.theme === "dark" ? "light" : "dark";
+}
+
+function openPage(page){
+  document.getElementById("landing").style.display = "none";
+  document.getElementById("personal").style.display = "none";
+  document.getElementById("business").style.display = "none";
+
+  document.getElementById(page).style.display = "block";
+  currentPage = page;
+
+  loadData();
+}
+
+function openBottomSheet(mode, catId=null, itemId=null){
+  sheetMode = mode;
+  activeCategory = catId;
+  activeItem = itemId;
+
+  const sheet = document.getElementById("bottomSheet");
+  const content = document.getElementById("sheetContent");
+
+  if (mode === "category"){
+    document.getElementById("sheetTitle").textContent = "Add Category";
+    content.innerHTML = `<input id="catName" placeholder="Category Name">`;
+  }
+
+  if (mode === "item"){
+    document.getElementById("sheetTitle").textContent = "Add Item";
+    content.innerHTML = `
+      <select id="itemCategory">
+        ${categories[currentPage]
+          .map(c => `<option value="${c.id}">${c.name}</option>`)
+          .join("")}
+      </select>
+      <input id="itemName" placeholder="Item Name">
+      <input id="itemPrice" type="number" placeholder="Price (optional)">
+    `;
+    if (catId){
+      document.getElementById("itemCategory").value = catId;
+    }
+  }
+
+  sheet.classList.add("show");
+}
+
+function closeSheet(){
+  document.getElementById("bottomSheet").classList.remove("show");
+}
+
+/* ------------------------------
+    SAVE CATEGORY OR ITEM
+------------------------------ */
+function saveSheet(){
+  if (sheetMode === "category"){
+    let name = document.getElementById("catName").value;
+    if (!name) return;
+    addCategory(name);
+  }
+
+  if (sheetMode === "item"){
+    let catId = document.getElementById("itemCategory").value;
+    let name = document.getElementById("itemName").value;
+    let price = document.getElementById("itemPrice").value || 0;
+    if (!name) return;
+
+    addItem(catId, name, price);
+  }
+}
+
+function toggleCategory(div){
+  let box = div.nextElementSibling;
+  box.style.maxHeight = box.style.maxHeight ? null : box.scrollHeight + "px";
+}
+
+/* ---------------------------------------------------
+    DATABASE OPERATIONS (AJAX → api.php)
+--------------------------------------------------- */
+
+function loadData() {
+  // Check if currentPage is valid
+  if (!currentPage || (currentPage !== "personal" && currentPage !== "business")) {
+    console.error("Invalid currentPage:", currentPage);
+    showMessage("Please select a valid page first", "error");
+    return;
+  }
+
+  // Show loading indicator
+  showLoading(true);
+  
+  // Construct URL safely
+  const url = `api.php?action=load&page=${encodeURIComponent(currentPage)}`;
+  
+  fetch(url)
+    .then(response => {
+      // Check if HTTP response is OK (status 200-299)
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      } else {
+          console.log(response);
+      }
+      return response.json();
+    })
+    .then(data => {
+      // Validate the data structure from API
+      if (!data || typeof data !== "object") {
+        throw new Error("Invalid data format received from server");
+      }
+      
+      // Ensure categories and items exist (even if empty)
+      categories[currentPage] = Array.isArray(data.categories) ? data.categories : [];
+      items = Array.isArray(data.items) ? data.items : [];
+      
+      console.log(`Loaded ${categories[currentPage].length} categories and ${items.length} items`);
+      
+      // Render the data
+      render();
+    })
+    .catch(error => {
+      console.error("Failed to load data:", error);
+      
+      // Show user-friendly error message
+      showMessage(`Failed to load data: ${error.message}`, "error");
+      
+      // Set empty arrays to prevent render errors
+      categories[currentPage] = [];
+      items = [];
+      
+      // Still render with empty data (clean state)
+      render();
+    })
+    .finally(() => {
+      // Hide loading indicator
+      showLoading(false);
+    });
+}
+
+// Helper function to show messages
+function showMessage(message, type = "info") {
+  // Remove any existing messages
+  const existingMsg = document.getElementById("errorMessage");
+  if (existingMsg) existingMsg.remove();
+  
+  // Create message element
+  const msgDiv = document.createElement("div");
+  msgDiv.id = "errorMessage";
+  msgDiv.textContent = message;
+  msgDiv.style.cssText = `
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 20px;
+    border-radius: 8px;
+    background: ${type === "error" ? "#f44336" : "#4CAF50"};
+    color: white;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  `;
+  
+  document.body.appendChild(msgDiv);
+  
+  // Auto-remove after 5 seconds
+  setTimeout(() => msgDiv.remove(), 5000);
+}
+
+// Helper function to show/hide loading indicator
+function showLoading(show) {
+  let loader = document.getElementById("loadingIndicator");
+  
+  if (show) {
+    if (!loader) {
+      loader = document.createElement("div");
+      loader.id = "loadingIndicator";
+      loader.innerHTML = "Loading...";
+      loader.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: var(--primary);
+        color: white;
+        padding: 8px 16px;
+        border-radius: var(--radius);
+        z-index: 1000;
+      `;
+      document.body.appendChild(loader);
+    }
+  } else if (loader) {
+    loader.remove();
+  }
+}
+
+function addCategory(name){
+  console.log("the category is " + name);
+  fetch("api.php", {
+    method: "POST",
+    body: new URLSearchParams({
+      action: "addCategory",
+      page: currentPage,
+      name: name
+    })
+  })
+  .then(r => r.json())
+  .then(loadData);
+
+  closeSheet();
+}
+
+function addItem(catId, name, price){
+  fetch("api.php", {
+    method: "POST",
+    body: new URLSearchParams({
+      action: "addItem",
+      category: catId,
+      name: name,
+      price: price
+    })
+  })
+  .then(r => r.json())
+  .then(loadData);
+
+  closeSheet();
+}
+
+function toggleItem(id, checked){
+  fetch("api.php", {
+    method: "POST",
+    body: new URLSearchParams({
+      action: "toggleItem",
+      id: id,
+      done: checked ? 1 : 0
+    })
+  })
+  .then(r => r.json())
+  .then(loadData);
+}
+
+/* ------------------------------
+    RENDER UI
+------------------------------ */
+function render() {
+  const box = document.getElementById(currentPage + "List");
+  box.innerHTML = "";
+
+  // Check if categories[currentPage] exists and is an array
+  if (!categories[currentPage] || !Array.isArray(categories[currentPage])) {
+    console.warn(`No categories found for ${currentPage}`);
+    return; // Exit early if no categories
+  }
+
+  // Also ensure items is an array
+  if (!Array.isArray(items)) {
+    items = [];
+  }
+
+  categories[currentPage].forEach(cat => {
+    // category box
+    let catDiv = document.createElement("div");
+    catDiv.className = "category";
+    catDiv.innerHTML = `<b>${cat.name}</b> (K${cat.total || 0})`; // Added default value for total
+    catDiv.onclick = () => toggleCategory(catDiv);
+    box.appendChild(catDiv);
+
+    // items inside category
+    let itemsBox = document.createElement("div");
+    itemsBox.className = "category-items";
+    box.appendChild(itemsBox);
+
+    // Filter items for this category
+    const categoryItems = items.filter(i => i.catId == cat.id);
+    
+    categoryItems.forEach(it => {
+      let itDiv = document.createElement("div");
+      itDiv.className = "item";
+
+      itDiv.innerHTML = `
+        <label>
+          <input type="checkbox" ${it.done ? "checked" : ""}
+            onchange="toggleItem(${it.id}, this.checked)"> 
+          ${it.name} ${it.price > 0 ? `(K${it.price})` : ""}
+        </label>
+      `;
+
+      itemsBox.appendChild(itDiv);
+    });
+
+    let addBtn = document.createElement("button");
+    addBtn.className = "btn";
+    addBtn.textContent = "Add Item";
+    addBtn.onclick = () => openBottomSheet("item", cat.id);
+    itemsBox.appendChild(addBtn);
+  });
+}
+</script>
+
+
+</body>
+
+</html>
