@@ -62,12 +62,12 @@ try {
         }
         
         // Get categories for the page
-        $stmt = $pdo->prepare("SELECT * FROM categories WHERE type = ? ORDER BY created_at DESC");
+        $stmt = $pdo->prepare("SELECT * FROM categories WHERE type = ? ORDER BY name ASC");
         $stmt->execute([$page]);
         $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         // Get all items
-        $stmt = $pdo->prepare("SELECT * FROM items ORDER BY created_at DESC");
+        $stmt = $pdo->prepare("SELECT * FROM items ORDER BY name ASC");
         $stmt->execute();
         $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
