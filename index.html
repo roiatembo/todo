@@ -358,6 +358,7 @@ function toggleItem(id, checked){
 function render() {
   const box = document.getElementById(currentPage + "List");
   box.innerHTML = "";
+  console.log("this is the box" + box);
 
   // Check if categories[currentPage] exists and is an array
   if (!categories[currentPage] || !Array.isArray(categories[currentPage])) {
