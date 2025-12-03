@@ -101,7 +101,7 @@ try {
             throw new Exception("Missing required fields: name and type/page");
         }
         
-        $stmt = $pdo->prepare("INSERT INTO categories (type, name) VALUES (?, ?, NOW())");
+        $stmt = $pdo->prepare("INSERT INTO categories (type, name) VALUES (?, ?)");
         $success = $stmt->execute([$type, $name]);
         
         $response = [
@@ -121,7 +121,7 @@ try {
             throw new Exception("Missing required fields: name and category");
         }
         
-        $stmt = $pdo->prepare("INSERT INTO items (category_id, name, price) VALUES (?, ?, ?, NOW())");
+        $stmt = $pdo->prepare("INSERT INTO items (category_id, name, price) VALUES (?, ?, ?)");
         $success = $stmt->execute([$catId, $name, $price]);
         
         $response = [
