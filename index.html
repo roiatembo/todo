@@ -83,7 +83,10 @@
 </div>
 
 <div class="page" id="personal" style="display:none;">
-  <h2>Personal</h2>
+  <div class="top-bar">
+    <h2>Personal</h2>
+    <h2 id="total-cost"></h2>
+  </div>
   <button class="btn" onclick="openBottomSheet('category')">Add Category</button>
   <div id="personalList"></div>
 </div>
@@ -365,6 +368,7 @@ function toggleItem(id, checked){
 function render() {
   const box = document.getElementById(currentPage + "List");
   box.innerHTML = "";
+  var totalCost;
 
   // Check if categories[currentPage] exists and is an array
   if (!categories[currentPage] || !Array.isArray(categories[currentPage])) {
@@ -383,6 +387,7 @@ function render() {
 
   categories[currentPage].forEach(cat => {
     // category box
+    totalCost += cat.total;
     let catDiv = document.createElement("div");
     catDiv.className = "category";
     catDiv.innerHTML = `<b>${cat.name}</b> (K${cat.total || 0})`;
@@ -440,6 +445,8 @@ function render() {
     addBtn.textContent = "Add Item";
     addBtn.onclick = () => openBottomSheet("item", cat.id);
     itemsBox.appendChild(addBtn);
+    let pageCost = document.getElementById("total-cost");
+    pageCost.innerHTML = `K${totalCost}`;
   });
 }
 </script>
