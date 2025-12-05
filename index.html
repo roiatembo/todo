@@ -455,9 +455,9 @@ function render() {
     addBtn.onclick = () => openBottomSheet("item", cat.id);
     itemsBox.appendChild(addBtn);
     let personalCost = document.getElementById("total-cost");
-    pageCost.innerHTML = `K${totalCost}`;
+    personalCost.innerHTML = `K${totalCost}`;
     let businessCost = document.getElementById("total-cost-business");
-    pageCost.innerHTML = `K${totalCost}`;
+    businessCost.innerHTML = `K${totalCost}`;
   });
 }
 </script>
