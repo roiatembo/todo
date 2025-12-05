@@ -373,7 +373,7 @@ function toggleItem(id, checked){
 function render() {
   const box = document.getElementById(currentPage + "List");
   box.innerHTML = "";
-  let totalCost;
+  let totalCost = 0;
 
   // Check if categories[currentPage] exists and is an array
   if (!categories[currentPage] || !Array.isArray(categories[currentPage])) {
