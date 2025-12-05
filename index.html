@@ -99,7 +99,7 @@
 <div class="page" id="business" style="display:none;">
    <div class="top-bar">
     <h2>Business</h2>
-    <h2 id="total-cost"></h2>
+    <h2 id="total-cost-business"></h2>
   </div>
   <button class="btn" onclick="openBottomSheet('category')">Add Business</button>
   <div id="businessList"></div>
@@ -108,7 +108,7 @@
 <div class="page" id="budget" style="display:none;">
    <div class="top-bar">
     <h2>Budget</h2>
-    <h2 id="total-cost"></h2>
+    <h2 id="total-cost-budget"></h2>
   </div>
   <div id="budgetList"></div>
 </div>
@@ -441,8 +441,6 @@ function render() {
 
         itDiv.innerHTML = `
           <label>
-            <input type="checkbox" ${isDone ? "checked" : ""}
-              onchange="toggleItem(${it.id}, this.checked)"> 
             ${it.name} ${itemPrice > 0 ? `(K${itemPrice})` : ""}
           </label>
         `;
@@ -456,7 +454,9 @@ function render() {
     addBtn.textContent = "Add Item";
     addBtn.onclick = () => openBottomSheet("item", cat.id);
     itemsBox.appendChild(addBtn);
-    let pageCost = document.getElementById("total-cost");
+    let personalCost = document.getElementById("total-cost");
+    pageCost.innerHTML = `K${totalCost}`;
+    let businessCost = document.getElementById("total-cost-business");
     pageCost.innerHTML = `K${totalCost}`;
   });
 }
