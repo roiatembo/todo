@@ -64,7 +64,7 @@ class TodoApp {
     return `
       <div class="page landing">
         <h1>Select Type</h1>
-        <button class="btn btn-primary" data-page="personal">Personal</button>
+        <button class="btn btn-primary" onclick="app.renderPage('personal')" data-page="personal">Personal</button>
         <button class="btn btn-primary" data-page="business">Business</button>
         <button class="btn btn-primary" data-page="budget">Budget</button>
       </div>
