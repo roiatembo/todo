@@ -239,17 +239,22 @@ class TodoApp {
   toggleCategory(categoryId) {
     console.log('Toggling category:', categoryId);
     const categoryEl = document.querySelector(`.category[data-id="${categoryId}"]`);
-    console.log("category element", categoryEl);
     if (categoryEl) {
       const itemsEl = categoryEl.querySelector('.category-items');
       const toggleBtn = categoryEl.querySelector('.toggle-btn');
-      
+      console.log("height", itemsEl.scrollHeight);
       if (itemsEl.style.maxHeight && itemsEl.style.maxHeight !== '0px') {
+        console.log("am cagney");
+        // itemsEl.style.maxHeight = '0';
+        // toggleBtn.textContent = '+';
+                itemsEl.style.maxHeight = itemsEl.scrollHeight + 'px';
+        toggleBtn.textContent = '−';
+      } else {
+        console.log("am lacey");
+        // itemsEl.style.maxHeight = itemsEl.scrollHeight + 'px';
+        // toggleBtn.textContent = '−';
         itemsEl.style.maxHeight = '0';
         toggleBtn.textContent = '+';
-      } else {
-        itemsEl.style.maxHeight = itemsEl.scrollHeight + 'px';
-        toggleBtn.textContent = '−';
       }
     }
   }
