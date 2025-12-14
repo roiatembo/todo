@@ -15,10 +15,10 @@ export class ApiService {
       });
       
       if (!response.ok) {
-        console.log("this is okay");
+        console.log("this is not okay");
         throw new Error(`HTTP ${response.status}`);
       }
-      
+      console.log(" we got something");
       return await response.json();
     } catch (error) {
       console.error('API Error:', error);
