@@ -4,6 +4,7 @@ const API_BASE = 'api.php';
 export class ApiService {
   static async request(endpoint, data = {}) {
     const url = `${API_BASE}?action=${endpoint}`;
+    console.log("api url", url);
     
     try {
       const response = await fetch(url, {
@@ -15,7 +16,6 @@ export class ApiService {
       });
       
       if (!response.ok) {
-        
         throw new Error(`HTTP ${response.status}`);
       }
       
