@@ -236,28 +236,29 @@ class TodoApp {
     document.body.dataset.theme = newTheme;
   }
   
-  toggleCategory(categoryId) {
-    console.log('Toggling category:', categoryId);
-    const categoryEl = document.querySelector(`.category[data-id="${categoryId}"]`);
-    if (categoryEl) {
-      const itemsEl = categoryEl.querySelector('.category-items');
-      const toggleBtn = categoryEl.querySelector('.toggle-btn');
-      console.log("height", itemsEl.scrollHeight);
-      if (itemsEl.style.maxHeight && itemsEl.style.maxHeight !== '0px') {
-        console.log("am cagney");
-        // itemsEl.style.maxHeight = '0';
-        // toggleBtn.textContent = '+';
-                itemsEl.style.maxHeight = itemsEl.scrollHeight + 'px';
-        toggleBtn.textContent = '−';
-      } else {
-        console.log("am lacey");
-        // itemsEl.style.maxHeight = itemsEl.scrollHeight + 'px';
-        // toggleBtn.textContent = '−';
-        itemsEl.style.maxHeight = '0';
-        toggleBtn.textContent = '+';
-      }
+ toggleCategory(categoryId) {
+  console.log('Toggling category:', categoryId);
+  const categoryEl = document.querySelector(`.category[data-id="${categoryId}"]`);
+  
+  if (categoryEl) {
+    const itemsEl = categoryEl.querySelector('.category-items');
+    const toggleBtn = categoryEl.querySelector('.toggle-btn');
+    console.log("height", itemsEl.scrollHeight);
+    
+    // Check if it's currently expanded (has a non-zero maxHeight)
+    const isExpanded = itemsEl.style.maxHeight && itemsEl.style.maxHeight !== '0' && itemsEl.style.maxHeight !== '0px';
+    
+    if (isExpanded) {
+      console.log("collapsing");
+      itemsEl.style.maxHeight = '0';
+      toggleBtn.textContent = '+';
+    } else {
+      console.log("expanding");
+      itemsEl.style.maxHeight = itemsEl.scrollHeight + 'px';
+      toggleBtn.textContent = '−';
     }
   }
+}
   
   openCategorySheet() {
     console.log('Opening category sheet');
