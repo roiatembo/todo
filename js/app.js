@@ -168,6 +168,7 @@ class TodoApp {
   }
   
   renderPage(page) {
+    console.log("understand state",this.state)
     const categories = this.state.categories[page] || [];
     const total = categories.reduce((sum, cat) => sum + (parseFloat(cat.total) || 0), 0);
     
