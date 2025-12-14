@@ -99,7 +99,7 @@ class TodoApp {
   
   async loadPageData(page) {
     try {
-      console.log('Loading data for page:', page);
+      // console.log('Loading data for page:', page);
       const data = await ApiService.loadCategories(page);
       console.log('Loaded data:', data);
       
@@ -119,7 +119,7 @@ class TodoApp {
   }
   
   render(state) {
-    console.log('Rendering with state:', state);
+    // console.log('Rendering with state:', state);
     
     const appContainer = document.getElementById('app');
     if (!appContainer) {
@@ -239,6 +239,7 @@ class TodoApp {
   toggleCategory(categoryId) {
     console.log('Toggling category:', categoryId);
     const categoryEl = document.querySelector(`.category[data-id="${categoryId}"]`);
+    console.log("category element", categoryEl);
     if (categoryEl) {
       const itemsEl = categoryEl.querySelector('.category-items');
       const toggleBtn = categoryEl.querySelector('.toggle-btn');
