@@ -246,11 +246,13 @@ class TodoApp {
     console.log("height", itemsEl.scrollHeight);
     
     // Check if it's currently expanded (has a non-zero maxHeight)
-    const isExpanded = itemsEl.style.maxHeight && itemsEl.style.maxHeight !== '0' && itemsEl.style.maxHeight !== '0px';
+    const isCollapsed = (itemsEl.style.maxHeight = '0px');
+    console.log("expanding", isCollapsed);
+
     
-    if (isExpanded) {
+    if (!isCollapsed) {
       console.log("collapsing");
-      itemsEl.style.maxHeight = '0';
+      itemsEl.style.maxHeight = '0px';
       toggleBtn.textContent = '+';
     } else {
       console.log("expanding");
