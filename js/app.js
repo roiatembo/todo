@@ -19,7 +19,7 @@ class TodoApp {
     
     // Subscribe to state changes
     this.state.subscribe((state) => {
-      console.log('State changed:', state);
+      // console.log('State changed:', state);
       this.render(state);
     });
     
@@ -119,7 +119,7 @@ class TodoApp {
   }
   
   render(state) {
-    console.log('Rendering with state:', state);
+    // console.log('Rendering with state:', state);
     
     const appContainer = document.getElementById('app');
     if (!appContainer) {

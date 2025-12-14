@@ -15,6 +15,7 @@ export class ApiService {
       });
       
       if (!response.ok) {
+        console.log("this is okay");
         throw new Error(`HTTP ${response.status}`);
       }
       
