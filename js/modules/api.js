@@ -3,17 +3,16 @@ const API_BASE = 'api.php';
 
 export class ApiService {
   static async request(endpoint, data = {}) {
-    const url = `${API_BASE}?action=${endpoint}`;
-    console.log("api url", url);
-    
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-      });
+    const url = API_BASE; // Remove action from URL
+  
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ action: endpoint, ...data }) // Add action to body
+    });
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);

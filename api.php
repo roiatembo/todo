@@ -22,11 +22,11 @@ try {
     $method = $_SERVER['REQUEST_METHOD'];
     
     // Get input data based on method
-    // if ($method === 'GET') {
-    //     // For GET requests (like your browser testing)
-    //     $data = $_GET;
-    //     $action = $data['action'] ?? '';
-    // } else {
+    if ($method === 'GET') {
+        // For GET requests (like your browser testing)
+        $data = $_GET;
+        $action = $data['action'] ?? '';
+    } else {
         // For POST/PUT/DELETE requests
         $input = file_get_contents("php://input");
         
@@ -38,7 +38,7 @@ try {
         // If JSON decoding fails, check for form data
         if ($data === null && json_last_error() !== JSON_ERROR_NONE) {
             $data = $_POST;
-        // }
+        }
         
         $action = $data['action'] ?? '';
     }
