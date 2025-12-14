@@ -119,7 +119,7 @@ class TodoApp {
   }
   
   render(state) {
-    // console.log('Rendering with state:', state);
+    console.log('Rendering with state:', state);
     
     const appContainer = document.getElementById('app');
     if (!appContainer) {
