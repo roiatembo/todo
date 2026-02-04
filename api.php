@@ -23,14 +23,12 @@ try {
     
     // Get input data based on method
     if ($method === 'GET') {
-        // For GET requests (like your browser testing)
         $data = $_GET;
         $action = $data['action'] ?? '';
     } else {
-        // For POST/PUT/DELETE requests
+        // For POST requests, try to parse the body
         $input = file_get_contents("php://input");
         
-        // Log raw input for debugging
         error_log("Raw input received: " . $input);
         
         $data = json_decode($input, true);
@@ -43,7 +41,6 @@ try {
         $action = $data['action'] ?? '';
     }
     
-    // Debug log
     error_log("Action received: " . $action);
     error_log("Data received: " . print_r($data, true));
     
@@ -52,7 +49,7 @@ try {
         throw new Exception("Database connection failed");
     }
     
-    // -------------------- LOAD DATA (for your fetch request) --------------------
+    // -------------------- LOAD DATA --------------------
     if ($action === "load") {
         $page = $data['page'] ?? 'personal';
         
@@ -66,8 +63,8 @@ try {
         $stmt->execute([$page]);
         $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // Get all items
-        $stmt = $pdo->prepare("SELECT * FROM items ORDER BY name ASC");
+        // Get all items (not filtered by done status anymore)
+        $stmt = $pdo->prepare("SELECT * FROM items WHERE done = 0 ORDER BY name ASC");
         $stmt->execute();
         $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
@@ -92,7 +89,7 @@ try {
         ];
     }
     
-    // -------------------- SAVE CATEGORY --------------------
+    // -------------------- ADD CATEGORY --------------------
     elseif ($action === "addCategory" || $action === "save_category") {
         $type = $data['page'] ?? $data['type'] ?? '';
         $name = $data['name'] ?? '';
@@ -111,7 +108,7 @@ try {
         ];
     }
     
-    // -------------------- SAVE ITEM ------------------------
+    // -------------------- ADD ITEM --------------------
     elseif ($action === "addItem" || $action === "save_item") {
         $catId = $data['category'] ?? $data['cat_id'] ?? 0;
         $name = $data['name'] ?? '';
@@ -121,7 +118,7 @@ try {
             throw new Exception("Missing required fields: name and category");
         }
         
-        $stmt = $pdo->prepare("INSERT INTO items (category_id, name, price) VALUES (?, ?, ?)");
+        $stmt = $pdo->prepare("INSERT INTO items (category_id, name, price, done) VALUES (?, ?, ?, 0)");
         $success = $stmt->execute([$catId, $name, $price]);
         
         $response = [
@@ -131,7 +128,42 @@ try {
         ];
     }
     
-    // -------------------- GET ALL DATA ---------------------
+    // -------------------- TOGGLE ITEM --------------------
+    elseif ($action === "toggleItem") {
+        $id = $data['id'] ?? 0;
+        $done = $data['done'] ?? 0;
+        
+        if ($id <= 0) {
+            throw new Exception("Invalid item ID");
+        }
+        
+        $stmt = $pdo->prepare("UPDATE items SET done = ? WHERE id = ?");
+        $success = $stmt->execute([$done, $id]);
+        
+        $response = [
+            "success" => $success,
+            "message" => $success ? "Item updated" : "Failed to update item"
+        ];
+    }
+    
+    // -------------------- DELETE ITEM --------------------
+    elseif ($action === "deleteItem") {
+        $id = $data['id'] ?? 0;
+        
+        if ($id <= 0) {
+            throw new Exception("Invalid item ID");
+        }
+        
+        $stmt = $pdo->prepare("DELETE FROM items WHERE id = ?");
+        $success = $stmt->execute([$id]);
+        
+        $response = [
+            "success" => $success,
+            "message" => $success ? "Item deleted successfully" : "Failed to delete item"
+        ];
+    }
+    
+    // -------------------- GET ALL DATA --------------------
     elseif ($action === "get_all") {
         $type = $data['type'] ?? 'personal';
         
@@ -154,27 +186,8 @@ try {
         ];
     }
     
-    // -------------------- TOGGLE ITEM ---------------------
-    elseif ($action === "toggleItem") {
-        $id = $data['id'] ?? 0;
-        $done = $data['done'] ?? 0;
-        
-        if ($id <= 0) {
-            throw new Exception("Invalid item ID");
-        }
-        
-        $stmt = $pdo->prepare("UPDATE items SET done = ? WHERE id = ?");
-        $success = $stmt->execute([$done, $id]);
-        
-        $response = [
-            "success" => $success,
-            "message" => $success ? "Item updated" : "Failed to update item"
-        ];
-    }
-    
-    // -------------------- TEST ENDPOINT ---------------------
+    // -------------------- TEST ENDPOINT --------------------
     elseif ($action === "test" || empty($action)) {
-        // This is for browser testing
         $response = [
             "success" => true,
             "message" => "API is working!",
@@ -183,17 +196,8 @@ try {
                 "addCategory/save_category - Add category",
                 "addItem/save_item - Add item",
                 "toggleItem - Toggle item status",
+                "deleteItem - Delete an item",
                 "get_all - Get all categories with items"
-            ],
-            "test_data" => [
-                "test_categories" => [
-                    ["id" => 1, "name" => "Test Category", "type" => "personal", "total" => 100],
-                    ["id" => 2, "name" => "Another Category", "type" => "business", "total" => 200]
-                ],
-                "test_items" => [
-                    ["id" => 1, "category_id" => 1, "name" => "Test Item", "price" => 50, "done" => 0],
-                    ["id" => 2, "category_id" => 1, "name" => "Another Item", "price" => 50, "done" => 1]
-                ]
             ],
             "debug" => [
                 "method" => $method,
@@ -209,7 +213,7 @@ try {
             "success" => false,
             "error" => "Invalid action specified",
             "received_action" => $action,
-            "available_actions" => ["load", "addCategory", "addItem", "toggleItem", "get_all"]
+            "available_actions" => ["load", "addCategory", "addItem", "toggleItem", "deleteItem", "get_all"]
         ];
     }
     
