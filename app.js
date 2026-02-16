@@ -44,7 +44,30 @@ function openPage(page) {
   document.getElementById(page).style.display = "block";
   currentPage = page;
 
+  // Show/hide navbar based on page
+  const navbar = document.getElementById("navbar");
+  if (page === "landing") {
+    navbar.style.display = "none";
+    document.body.classList.remove("with-navbar");
+  } else {
+    navbar.style.display = "block";
+    document.body.classList.add("with-navbar");
+    updateNavButtons(page);
+  }
+
   loadData();
+}
+
+// Update active nav button
+function updateNavButtons(activePage) {
+  const navBtns = document.querySelectorAll(".nav-btn");
+  navBtns.forEach(btn => {
+    btn.classList.remove("active");
+    const btnText = btn.textContent.toLowerCase();
+    if (btnText === activePage) {
+      btn.classList.add("active");
+    }
+  });
 }
 
 // Bottom Sheet
@@ -160,7 +183,7 @@ function confirmAction() {
 // ==================== DATABASE OPERATIONS ====================
 
 function loadData() {
-  if (!currentPage || (currentPage !== "personal" && currentPage !== "business")) {
+  if (!currentPage || (currentPage !== "personal" && currentPage !== "business" && currentPage !== "budget")) {
     console.error("Invalid currentPage:", currentPage);
     showMessage("Please select a valid page first", "error");
     return;
@@ -461,12 +484,16 @@ function render() {
   // Update total cost display
   const personalCost = document.getElementById("total-cost");
   const businessCost = document.getElementById("total-cost-business");
-  
+  const budgetCost = document.getElementById("total-cost-budget");
+
   if (personalCost && currentPage === "personal") {
     personalCost.textContent = `K${totalCost.toFixed(2)}`;
   }
   if (businessCost && currentPage === "business") {
     businessCost.textContent = `K${totalCost.toFixed(2)}`;
+  }
+  if (budgetCost && currentPage === "budget") {
+    budgetCost.textContent = `K${totalCost.toFixed(2)}`;
   }
 }
 
