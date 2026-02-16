@@ -2,9 +2,12 @@
 let currentPage = "";
 let categories = {
   personal: [],
-  business: []
+  business: [],
+  budget: []
 };
 let items = [];
+let budgetItems = [];
+let monthlyIncome = 0;
 
 let sheetMode = "";
 let activeCategory = null;
@@ -70,6 +73,20 @@ function updateNavButtons(activePage) {
   });
 }
 
+// Income Sheet
+function openIncomeSheet() {
+  sheetMode = "income";
+  const sheet = document.getElementById("bottomSheet");
+  const content = document.getElementById("sheetContent");
+
+  document.getElementById("sheetTitle").textContent = "Set Monthly Income";
+  content.innerHTML = `
+    <input id="incomeAmount" type="number" placeholder="Enter your monthly income" step="0.01" min="0" value="${monthlyIncome || ''}" autocomplete="off">
+  `;
+
+  sheet.classList.add("show");
+}
+
 // Bottom Sheet
 function openBottomSheet(mode, catId = null, itemId = null) {
   sheetMode = mode;
@@ -118,6 +135,16 @@ function closeSheet() {
 
 // Save Category or Item
 function saveSheet() {
+  if (sheetMode === "income") {
+    const income = document.getElementById("incomeAmount").value;
+    if (!income || parseFloat(income) < 0) {
+      showMessage("Please enter a valid income amount", "error");
+      return;
+    }
+    saveIncome(income);
+    return;
+  }
+
   if (sheetMode === "category") {
     const name = document.getElementById("catName").value.trim();
     if (!name) {
@@ -131,7 +158,7 @@ function saveSheet() {
     const catId = document.getElementById("itemCategory").value;
     const name = document.getElementById("itemName").value.trim();
     const price = document.getElementById("itemPrice").value || 0;
-    
+
     if (!name) {
       showMessage("Please enter an item name", "error");
       return;
@@ -204,13 +231,16 @@ function loadData() {
       if (!data || typeof data !== "object") {
         throw new Error("Invalid data format received from server");
       }
-      
-      categories[currentPage] = Array.isArray(data.categories) ? data.categories : [];
-      items = Array.isArray(data.items) ? data.items : [];
-      
-      console.log(`Loaded ${categories[currentPage].length} categories and ${items.length} items`);
-      
-      render();
+
+      if (currentPage === "budget") {
+        budgetItems = Array.isArray(data.budgetItems) ? data.budgetItems : [];
+        monthlyIncome = parseFloat(data.income) || 0;
+        renderBudget();
+      } else {
+        categories[currentPage] = Array.isArray(data.categories) ? data.categories : [];
+        items = Array.isArray(data.items) ? data.items : [];
+        render();
+      }
     })
     .catch(error => {
       console.error("Failed to load data:", error);
@@ -226,8 +256,6 @@ function loadData() {
 }
 
 function addCategory(name) {
-  console.log("Adding category:", name);
-  
   fetch("api.php", {
     method: "POST",
     headers: {
@@ -349,6 +377,92 @@ function deleteItem(id, name) {
   });
 }
 
+function deleteCategory(id, name) {
+  openModal(`Delete category "${name}" and all its items?`, () => {
+    fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        action: "deleteCategory",
+        id: id
+      })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showMessage("Category deleted successfully!", "success");
+        loadData();
+      } else {
+        showMessage(data.message || "Failed to delete category", "error");
+      }
+    })
+    .catch(error => {
+      console.error("Error deleting category:", error);
+      showMessage("Failed to delete category", "error");
+    });
+  });
+}
+
+function saveIncome(amount) {
+  fetch("api.php", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      action: "setIncome",
+      amount: amount
+    })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      monthlyIncome = parseFloat(amount);
+      showMessage("Income updated successfully!", "success");
+      closeSheet();
+      renderBudget();
+    } else {
+      showMessage(data.message || "Failed to update income", "error");
+    }
+  })
+  .catch(error => {
+    console.error("Error updating income:", error);
+    showMessage("Failed to update income", "error");
+  });
+}
+
+function moveItemToBudget(itemId, itemName, itemPrice) {
+  fetch("api.php", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      action: "moveToBudget",
+      itemId: itemId,
+      name: itemName,
+      price: itemPrice
+    })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      showMessage("Item added to budget!", "success");
+      if (currentPage !== "budget") {
+        loadData();
+      }
+    } else {
+      showMessage(data.message || "Failed to add to budget", "error");
+    }
+  })
+  .catch(error => {
+    console.error("Error adding to budget:", error);
+    showMessage("Failed to add to budget", "error");
+  });
+}
+
 // ==================== UI RENDERING ====================
 
 function render() {
@@ -359,16 +473,12 @@ function render() {
   let totalCost = 0;
 
   if (!categories[currentPage] || !Array.isArray(categories[currentPage])) {
-    console.warn(`No categories found for ${currentPage}`);
     return;
   }
 
   if (!Array.isArray(items)) {
     items = [];
   }
-
-  console.log("Rendering categories:", categories[currentPage]);
-  console.log("Rendering items:", items);
 
   categories[currentPage].forEach(cat => {
     // Calculate category total
@@ -392,15 +502,18 @@ function render() {
     const headerDiv = document.createElement("div");
     headerDiv.className = "category-header";
     headerDiv.onclick = () => toggleCategory(headerDiv);
-    
+
     headerDiv.innerHTML = `
       <div>
         <b>${cat.name}</b>
         <span style="color: var(--muted); margin-left: 10px;">(K${categoryTotal.toFixed(2)})</span>
       </div>
-      <span class="category-arrow">▶</span>
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <button class="delete-btn category-delete-btn" onclick="event.stopPropagation(); deleteCategory(${cat.id}, '${cat.name.replace(/'/g, "\\'")}')">✕</button>
+        <span class="category-arrow">▶</span>
+      </div>
     `;
-    
+
     catDiv.appendChild(headerDiv);
 
     // Items container
@@ -452,6 +565,24 @@ function render() {
           contentDiv.appendChild(price);
         }
 
+        // Buttons container
+        const buttonsDiv = document.createElement("div");
+        buttonsDiv.style.display = "flex";
+        buttonsDiv.style.gap = "8px";
+
+        // Move to Budget button
+        const budgetBtn = document.createElement("button");
+        budgetBtn.className = "btn-small btn-secondary";
+        budgetBtn.textContent = "💰";
+        budgetBtn.title = "Add to Budget";
+        budgetBtn.style.padding = "6px 10px";
+        budgetBtn.style.fontSize = "14px";
+        budgetBtn.style.marginTop = "0";
+        budgetBtn.onclick = (e) => {
+          e.stopPropagation();
+          moveItemToBudget(item.id, item.name, itemPrice);
+        };
+
         // Delete button
         const deleteBtn = document.createElement("button");
         deleteBtn.className = "delete-btn";
@@ -461,8 +592,11 @@ function render() {
           deleteItem(item.id, item.name);
         };
 
+        buttonsDiv.appendChild(budgetBtn);
+        buttonsDiv.appendChild(deleteBtn);
+
         itemDiv.appendChild(contentDiv);
-        itemDiv.appendChild(deleteBtn);
+        itemDiv.appendChild(buttonsDiv);
         itemsBox.appendChild(itemDiv);
       });
     }
@@ -484,7 +618,6 @@ function render() {
   // Update total cost display
   const personalCost = document.getElementById("total-cost");
   const businessCost = document.getElementById("total-cost-business");
-  const budgetCost = document.getElementById("total-cost-budget");
 
   if (personalCost && currentPage === "personal") {
     personalCost.textContent = `K${totalCost.toFixed(2)}`;
@@ -492,9 +625,160 @@ function render() {
   if (businessCost && currentPage === "business") {
     businessCost.textContent = `K${totalCost.toFixed(2)}`;
   }
-  if (budgetCost && currentPage === "budget") {
-    budgetCost.textContent = `K${totalCost.toFixed(2)}`;
+}
+
+function renderBudget() {
+  const box = document.getElementById("budgetList");
+  if (!box) return;
+
+  box.innerHTML = "";
+  let totalSpent = 0;
+
+  // Update income display
+  const incomeDisplay = document.getElementById("income-display");
+  if (incomeDisplay) {
+    incomeDisplay.textContent = `K${monthlyIncome.toFixed(2)}`;
   }
+
+  // Render budget items
+  if (!Array.isArray(budgetItems) || budgetItems.length === 0) {
+    const emptyMsg = document.createElement("div");
+    emptyMsg.className = "empty-message";
+    emptyMsg.textContent = "No budget items yet. Add items from Personal or Business pages!";
+    box.appendChild(emptyMsg);
+  } else {
+    budgetItems.forEach(item => {
+      const isDone = item.done == 1 || item.completed || item.checked || false;
+      const itemPrice = parseFloat(item.price) || 0;
+      totalSpent += itemPrice;
+
+      const itemDiv = document.createElement("div");
+      itemDiv.className = "budget-item";
+
+      const contentDiv = document.createElement("div");
+      contentDiv.className = "item-content";
+
+      // Checkbox
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.className = "item-checkbox";
+      checkbox.checked = isDone;
+      checkbox.onchange = (e) => {
+        e.stopPropagation();
+        toggleBudgetItem(item.id, e.target.checked);
+      };
+
+      // Label
+      const label = document.createElement("span");
+      label.className = "item-label" + (isDone ? " checked" : "");
+      label.textContent = item.name;
+      label.onclick = () => checkbox.click();
+
+      // Price
+      const price = document.createElement("span");
+      price.className = "item-price";
+      if (itemPrice > 0) {
+        price.textContent = `K${itemPrice.toFixed(2)}`;
+      }
+
+      contentDiv.appendChild(checkbox);
+      contentDiv.appendChild(label);
+      if (itemPrice > 0) {
+        contentDiv.appendChild(price);
+      }
+
+      // Delete button
+      const deleteBtn = document.createElement("button");
+      deleteBtn.className = "delete-btn";
+      deleteBtn.textContent = "✕";
+      deleteBtn.onclick = (e) => {
+        e.stopPropagation();
+        deleteBudgetItem(item.id, item.name);
+      };
+
+      itemDiv.appendChild(contentDiv);
+      itemDiv.appendChild(deleteBtn);
+      box.appendChild(itemDiv);
+    });
+  }
+
+  // Update budget summary
+  const budgetSpent = document.getElementById("budget-spent");
+  const budgetRemaining = document.getElementById("budget-remaining");
+
+  if (budgetSpent) {
+    budgetSpent.textContent = `K${totalSpent.toFixed(2)}`;
+  }
+
+  if (budgetRemaining) {
+    const remaining = monthlyIncome - totalSpent;
+    budgetRemaining.textContent = `K${remaining.toFixed(2)}`;
+    budgetRemaining.style.color = remaining >= 0 ? "var(--success)" : "var(--danger)";
+  }
+}
+
+function toggleBudgetItem(id, checked) {
+  if (checked) {
+    openModal("Mark this budget item as complete?", () => {
+      performToggleBudget(id, 1);
+    });
+  } else {
+    performToggleBudget(id, 0);
+  }
+}
+
+function performToggleBudget(id, done) {
+  fetch("api.php", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      action: "toggleBudgetItem",
+      id: id,
+      done: done
+    })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      loadData();
+    } else {
+      showMessage("Failed to update item", "error");
+    }
+  })
+  .catch(error => {
+    console.error("Error toggling budget item:", error);
+    showMessage("Failed to update item", "error");
+  });
+}
+
+function deleteBudgetItem(id, name) {
+  openModal(`Remove "${name}" from budget?`, () => {
+    fetch("api.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: new URLSearchParams({
+        action: "deleteBudgetItem",
+        id: id
+      })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showMessage("Item removed from budget!", "success");
+        loadData();
+      } else {
+        showMessage(data.message || "Failed to remove item", "error");
+      }
+    })
+    .catch(error => {
+      console.error("Error removing budget item:", error);
+      showMessage("Failed to remove item", "error");
+    });
+  });
 }
 
 // ==================== HELPER FUNCTIONS ====================

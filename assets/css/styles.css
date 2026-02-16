@@ -99,6 +99,71 @@ h2 {
   font-size: 1.5rem;
 }
 
+/* Budget Page */
+.budget-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  gap: 15px;
+}
+
+.budget-header h2 {
+  margin: 0;
+}
+
+.budget-summary {
+  background: var(--card);
+  padding: 20px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-bottom: 20px;
+}
+
+.budget-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.budget-row:last-child {
+  border-bottom: none;
+}
+
+.budget-remaining {
+  margin-top: 10px;
+  padding-top: 15px;
+  border-top: 2px solid var(--primary);
+  font-size: 1.1rem;
+}
+
+.budget-amount {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.budget-remaining .budget-amount {
+  font-size: 1.3rem;
+}
+
+.budget-item {
+  background: var(--card);
+  padding: 12px;
+  margin-bottom: 8px;
+  border-left: 4px solid var(--primary);
+  border-radius: var(--radius);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+  border: 1px solid var(--border);
+}
+
+.budget-item:hover {
+  box-shadow: var(--shadow);
+}
+
 /* Category */
 .category {
   background: var(--card);
@@ -214,6 +279,11 @@ h2 {
 .delete-btn:hover {
   background: #cc0000;
   transform: scale(1.05);
+}
+
+.category-delete-btn {
+  padding: 4px 8px;
+  font-size: 12px;
 }
 
 /* Empty State */

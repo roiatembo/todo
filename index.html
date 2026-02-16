@@ -46,9 +46,23 @@
 </div>
 
 <div class="page" id="budget" style="display:none;">
-   <div class="top-bar">
+  <div class="budget-header">
     <h2>Budget</h2>
-    <h2 id="total-cost-budget" class="total-display">K0</h2>
+    <button class="btn btn-primary" onclick="openIncomeSheet()">💰 Set Income</button>
+  </div>
+  <div class="budget-summary">
+    <div class="budget-row">
+      <span>Monthly Income:</span>
+      <span id="income-display" class="budget-amount">K0</span>
+    </div>
+    <div class="budget-row">
+      <span>Total Budget:</span>
+      <span id="budget-spent" class="budget-amount">K0</span>
+    </div>
+    <div class="budget-row budget-remaining">
+      <span><strong>Remaining:</strong></span>
+      <span id="budget-remaining" class="budget-amount"><strong>K0</strong></span>
+    </div>
   </div>
   <div id="budgetList"></div>
 </div>

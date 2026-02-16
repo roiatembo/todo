@@ -52,41 +52,61 @@ try {
     // -------------------- LOAD DATA --------------------
     if ($action === "load") {
         $page = $data['page'] ?? 'personal';
-        
-        // Validate page type
-        if (!in_array($page, ['personal', 'business'])) {
-            $page = 'personal';
-        }
-        
-        // Get categories for the page
-        $stmt = $pdo->prepare("SELECT * FROM categories WHERE type = ? ORDER BY name ASC");
-        $stmt->execute([$page]);
-        $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Get all items (not filtered by done status anymore)
-        $stmt = $pdo->prepare("SELECT * FROM items WHERE done = 0 ORDER BY name ASC");
-        $stmt->execute();
-        $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Calculate totals for each category
-        foreach ($categories as &$category) {
-            $category['total'] = 0;
-            foreach ($items as $item) {
-                if ($item['category_id'] == $category['id']) {
-                    $category['total'] += (float)$item['price'];
+
+        // Handle budget page differently
+        if ($page === 'budget') {
+            // Get budget items
+            $stmt = $pdo->prepare("SELECT * FROM budget_items ORDER BY created_at DESC");
+            $stmt->execute();
+            $budgetItems = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Get monthly income
+            $stmt = $pdo->prepare("SELECT value FROM settings WHERE setting_key = 'monthly_income' LIMIT 1");
+            $stmt->execute();
+            $incomeRow = $stmt->fetch(PDO::FETCH_ASSOC);
+            $income = $incomeRow ? (float)$incomeRow['value'] : 0;
+
+            $response = [
+                "success" => true,
+                "budgetItems" => $budgetItems,
+                "income" => $income
+            ];
+        } else {
+            // Validate page type
+            if (!in_array($page, ['personal', 'business'])) {
+                $page = 'personal';
+            }
+
+            // Get categories for the page
+            $stmt = $pdo->prepare("SELECT * FROM categories WHERE type = ? ORDER BY name ASC");
+            $stmt->execute([$page]);
+            $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Get all items (not filtered by done status anymore)
+            $stmt = $pdo->prepare("SELECT * FROM items WHERE done = 0 ORDER BY name ASC");
+            $stmt->execute();
+            $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Calculate totals for each category
+            foreach ($categories as &$category) {
+                $category['total'] = 0;
+                foreach ($items as $item) {
+                    if ($item['category_id'] == $category['id']) {
+                        $category['total'] += (float)$item['price'];
+                    }
                 }
             }
+
+            $response = [
+                "success" => true,
+                "categories" => $categories,
+                "items" => $items,
+                "count" => [
+                    "categories" => count($categories),
+                    "items" => count($items)
+                ]
+            ];
         }
-        
-        $response = [
-            "success" => true,
-            "categories" => $categories,
-            "items" => $items,
-            "count" => [
-                "categories" => count($categories),
-                "items" => count($items)
-            ]
-        ];
     }
     
     // -------------------- ADD CATEGORY --------------------
@@ -149,17 +169,124 @@ try {
     // -------------------- DELETE ITEM --------------------
     elseif ($action === "deleteItem") {
         $id = $data['id'] ?? 0;
-        
+
         if ($id <= 0) {
             throw new Exception("Invalid item ID");
         }
-        
+
         $stmt = $pdo->prepare("DELETE FROM items WHERE id = ?");
         $success = $stmt->execute([$id]);
-        
+
         $response = [
             "success" => $success,
             "message" => $success ? "Item deleted successfully" : "Failed to delete item"
+        ];
+    }
+
+    // -------------------- DELETE CATEGORY --------------------
+    elseif ($action === "deleteCategory") {
+        $id = $data['id'] ?? 0;
+
+        if ($id <= 0) {
+            throw new Exception("Invalid category ID");
+        }
+
+        // Delete all items in this category first
+        $stmt = $pdo->prepare("DELETE FROM items WHERE category_id = ?");
+        $stmt->execute([$id]);
+
+        // Delete the category
+        $stmt = $pdo->prepare("DELETE FROM categories WHERE id = ?");
+        $success = $stmt->execute([$id]);
+
+        $response = [
+            "success" => $success,
+            "message" => $success ? "Category deleted successfully" : "Failed to delete category"
+        ];
+    }
+
+    // -------------------- SET INCOME --------------------
+    elseif ($action === "setIncome") {
+        $amount = $data['amount'] ?? 0;
+
+        if ($amount < 0) {
+            throw new Exception("Invalid income amount");
+        }
+
+        // Check if income setting exists
+        $stmt = $pdo->prepare("SELECT id FROM settings WHERE setting_key = 'monthly_income' LIMIT 1");
+        $stmt->execute();
+        $exists = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($exists) {
+            // Update existing
+            $stmt = $pdo->prepare("UPDATE settings SET value = ? WHERE setting_key = 'monthly_income'");
+            $success = $stmt->execute([$amount]);
+        } else {
+            // Insert new
+            $stmt = $pdo->prepare("INSERT INTO settings (setting_key, value) VALUES ('monthly_income', ?)");
+            $success = $stmt->execute([$amount]);
+        }
+
+        $response = [
+            "success" => $success,
+            "message" => $success ? "Income updated successfully" : "Failed to update income"
+        ];
+    }
+
+    // -------------------- MOVE TO BUDGET --------------------
+    elseif ($action === "moveToBudget") {
+        $itemId = $data['itemId'] ?? 0;
+        $name = $data['name'] ?? '';
+        $price = $data['price'] ?? 0;
+
+        if (empty($name)) {
+            throw new Exception("Missing item name");
+        }
+
+        // Insert into budget_items
+        $stmt = $pdo->prepare("INSERT INTO budget_items (name, price, done, created_at) VALUES (?, ?, 0, NOW())");
+        $success = $stmt->execute([$name, $price]);
+
+        $response = [
+            "success" => $success,
+            "message" => $success ? "Item added to budget" : "Failed to add to budget",
+            "id" => $success ? $pdo->lastInsertId() : null
+        ];
+    }
+
+    // -------------------- TOGGLE BUDGET ITEM --------------------
+    elseif ($action === "toggleBudgetItem") {
+        $id = $data['id'] ?? 0;
+        $done = $data['done'] ?? 0;
+
+        if ($id <= 0) {
+            throw new Exception("Invalid item ID");
+        }
+
+        $stmt = $pdo->prepare("UPDATE budget_items SET done = ? WHERE id = ?");
+        $success = $stmt->execute([$done, $id]);
+
+        $response = [
+            "success" => $success,
+            "message" => $success ? "Budget item updated" : "Failed to update budget item"
+        ];
+    }
+
+    // -------------------- DELETE BUDGET ITEM --------------------
+    elseif ($action === "deleteBudgetItem") {
+        $id = $data['id'] ?? 0;
+
+        if ($id <= 0) {
+            throw new Exception("Invalid item ID");
+        }
+
+        $stmt = $pdo->prepare("DELETE FROM budget_items WHERE id = ?");
+        $success = $stmt->execute([$id]);
+
+        $response = [
+            "success" => $success,
+            "message" => $success ? "Budget item deleted successfully" : "Failed to delete budget item"
         ];
     }
     
