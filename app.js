@@ -119,6 +119,14 @@ function openBottomSheet(mode, catId = null, itemId = null) {
     }
   }
 
+  if (mode === "budgetItem") {
+    document.getElementById("sheetTitle").textContent = "Add Budget Item";
+    content.innerHTML = `
+      <input id="budgetItemName" placeholder="Item Name" autocomplete="off">
+      <input id="budgetItemPrice" type="number" placeholder="Price (optional)" step="0.01" min="0">
+    `;
+  }
+
   sheet.classList.add("show");
 }
 
@@ -165,6 +173,18 @@ function saveSheet() {
     }
 
     addItem(catId, name, price);
+  }
+
+  if (sheetMode === "budgetItem") {
+    const name = document.getElementById("budgetItemName").value.trim();
+    const price = document.getElementById("budgetItemPrice").value || 0;
+
+    if (!name) {
+      showMessage("Please enter an item name", "error");
+      return;
+    }
+
+    addDirectBudgetItem(name, price);
   }
 }
 
@@ -428,6 +448,34 @@ function saveIncome(amount) {
   });
 }
 
+function addDirectBudgetItem(name, price) {
+  fetch("api.php", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      action: "moveToBudget",
+      name: name,
+      price: price
+    })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      showMessage("Item added to budget!", "success");
+      closeSheet();
+      loadData();
+    } else {
+      showMessage(data.message || "Failed to add item", "error");
+    }
+  })
+  .catch(error => {
+    console.error("Error adding budget item:", error);
+    showMessage("Failed to add item", "error");
+  });
+}
+
 function moveItemToBudget(itemId, itemName, itemPrice) {
   fetch("api.php", {
     method: "POST",
@@ -639,7 +687,7 @@ function renderBudget() {
   if (!Array.isArray(budgetItems) || budgetItems.length === 0) {
     const emptyMsg = document.createElement("div");
     emptyMsg.className = "empty-message";
-    emptyMsg.textContent = "No budget items yet. Add items from Personal or Business pages!";
+    emptyMsg.textContent = "No budget items yet. Use '+ Add Item' or add items from Personal or Business pages!";
     box.appendChild(emptyMsg);
   } else {
     budgetItems.forEach(item => {
