@@ -210,11 +210,6 @@ function confirmAction() {
 // ==================== DATABASE OPERATIONS ====================
 
 function loadData() {
-  if (!currentPage || (currentPage !== "personal" && currentPage !== "business" && currentPage !== "budget")) {
-    console.error("Invalid currentPage:", currentPage);
-    showMessage("Please select a valid page first", "error");
-    return;
-  }
 
   showLoading(true);
   
